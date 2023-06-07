@@ -21,6 +21,16 @@ $ cd bimpcc
 $ pip install -e .
 ```
 
+## Docker Environment
+A docker environment is provided to run the experiments. To build the docker image, execute the following command:
+```bash
+$ docker build -t bimpcc .
+```
+To run the docker image, execute the following command:
+```bash
+$ docker run -d bimpcc tail -f /dev/null
+```
+
 ## Run MPCC Bilevel Parameter Learning
 ### TV Denoising
 ```bash
