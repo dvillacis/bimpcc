@@ -71,8 +71,8 @@ RUN cd ${HOME}/Software && mkdir ipopt && cd ipopt \
     && make && make install
 
 # Install bimpcc pre-requisites
-RUN which pip
-RUN pip install numpy scipy scikit-image pylops pyproximal
+RUN pip install --upgrade pip
+RUN pip install numpy scipy scikit-image pylops pyproximal pillow
 
 # Install pyoptsparse
 RUN cd ${HOME}/Software && git clone https://github.com/mdolab/pyoptsparse.git \

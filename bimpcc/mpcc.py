@@ -7,6 +7,7 @@ class MPCC:
         self.m,self.n = true_img.shape
         self.true_img = true_img
         self.noisy_img = noisy_img
+        print(f'Image size: {self.m}x{self.n} Noisy size: {self.noisy_img.shape}')
         self.tik = tik
         self.alpha_max = alpha_max
         self.Kx = Kx
@@ -16,9 +17,9 @@ class MPCC:
         self.dim_u = Kx.shape[1]
         self.dim_alpha = alpha_size
         # Define the optimization problem
-        self.opt_prob = Optimization('Scalar TV Denoising',self.objfun)
+        self.optProb = Optimization('Scalar TV Denoising',self.objfun)
         # Design variables
-        self.optProb.addVarGroup('u',self.dim_u,lower=0,upper=None,value=self.noisy_img)
+        self.optProb.addVarGroup('u',self.dim_u,lower=0,upper=None,value=self.noisy_img.ravel())
         self.optProb.addVarGroup('q',2*self.dim_q,value=0.0000*np.ones(2*self.dim_q))
         self.optProb.addVarGroup('alpha',self.dim_alpha,lower=0,upper=alpha_max,value=0.0001*np.ones(self.dim_alpha))
         self.optProb.addVarGroup('r',self.dim_q,lower=0,value=0.0001*np.ones(self.dim_q))
@@ -48,7 +49,7 @@ class MPCC:
         # Linear constraints
         jac_u = (self.R.T*self.R).tosparse() + 0.001*eye(self.dim_u)
         jac_q = csr_matrix(np.hstack([Kx.transpose().todense(),Ky.transpose().todense()]))
-        self.optProb.addConGroup('lin_con1',self.dim_u,lower=self.noisy_img,upper=self.noisy_img,wrt=['u','q'],jac={'u':jac_u,'q':jac_q},linear=True)
+        self.optProb.addConGroup('lin_con1',self.dim_u,lower=self.noisy_img.ravel(),upper=self.noisy_img.ravel(),wrt=['u','q'],jac={'u':jac_u,'q':jac_q},linear=True)
 
         jac_alpha = np.ones(self.dim_q).reshape((self.dim_q,1))
         jac_delta = dia_matrix(-np.eye(self.dim_q),(self.dim_q,self.dim_q)).tolil()
@@ -108,8 +109,8 @@ class MPCC:
         return gout, fail
     
     def solve(self,print_sparsity=True):
-        if print_sparsity: self.opt_prob.printSparsity()
-        self.opt_prob.addObj('obj')
+        if print_sparsity: self.optProb.printSparsity()
+        self.optProb.addObj('obj')
         opt = OPT('IPOPT',options={'print_level':5,'acceptable_tol':1e-2,'acceptable_iter':5})
-        sol = opt(self.opt_prob,sens_type=self.usr_jac,store_hst=True)
+        sol = opt(self.optProb,sens_type=self.usr_jac,store_hst=True)
         return sol.xStar['alpha'],np.clip(sol.xStar['u'].reshape((self.m,self.n)),0,1)
