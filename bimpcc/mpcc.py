@@ -112,5 +112,6 @@ class MPCC:
         if print_sparsity: self.optProb.printSparsity()
         self.optProb.addObj('obj')
         opt = OPT('IPOPT',options={'print_level':5,'acceptable_tol':1e-2,'acceptable_iter':5})
+        # opt = OPT('SLSQP')
         sol = opt(self.optProb,sens_type=self.usr_jac,store_hst=True)
         return sol.xStar['alpha'],np.clip(sol.xStar['u'].reshape((self.m,self.n)),0,1)
