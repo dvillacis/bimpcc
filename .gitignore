@@ -5,3 +5,4 @@ build
 raw_output
 notebooks
 dtv_inpainting_results
+IPOPT.out
