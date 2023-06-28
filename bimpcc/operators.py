@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 from pylops import LinearOperator
-from pylops.basicoperators import VStack
+from pylops.basicoperators import VStack, Zero
 from pylops.utils.backend import get_array_module
 # from pylops.utils._internal import _value_or_sized_to_tuple
 # from pylops.utils.typing import DTypeLike, InputDimsLike, NDArray
@@ -300,6 +300,23 @@ class DirectionalGradient(LinearOperator):
     def _rmatvec(self, x):
         return self._matvec(x)
     
+class SimmetrizedGradient(LinearOperator):
+    def __init__(self,
+                 dims:tuple,
+                 sampling:int=1,
+                 edge:bool=False,
+                 kind:str="forward",
+                 dtype="float64",
+                 name:str = 'SG'):
+        ndims = len(dims)
+        self.sampling = (sampling,sampling)
+        self.edge = edge
+        self.kind = kind
+        self.shape = (np.prod(dims[0]-1)*(dims[1]-1),np.prod(dims))
+        Kx = FirstDerivative(N=np.prod(dims),dims=dims,dir=0,kind=kind,dtype=dtype)
+        Ky = FirstDerivative(N=np.prod(dims),dims=dims,dir=1,kind=kind,dtype=dtype)
+        Z = Zero(Kx.shape[0],np.prod(dims))
+    
 
 class BinarySelection(LinearOperator):
     def __init__(self,dims: tuple, m: int, dtype = "float64", name: str = 'BinSel'):
@@ -339,10 +356,10 @@ class PatchSelection(LinearOperator):
         # Binary Selection
         self.selection = sp.eye(np.prod(dims)).tocsr()
         
-        np.random.seed(0)
+        np.random.seed(123)
         dummy_img = np.ones(dims)
         row,col = np.random.randint(0, dims[0]-patch_shape[0]), np.random.randint(0, dims[1]-patch_shape[1])
-        row2,col2 = np.random.randint(0, dims[0]-patch_shape[0]), np.random.randint(0, dims[1]-patch_shape[1])
+        row2,col2 = np.random.randint(row, row+dims[0]-patch_shape[0]), np.random.randint(col, col+dims[1]-patch_shape[1])
         dummy_img[row:row+patch_shape[0],col:col+patch_shape[1]] = 0
         dummy_img[row2:row2+patch_shape[0],col2:col2+patch_shape[1]] = 0
         rows_to_keep = np.nonzero(dummy_img.ravel())[0]

@@ -3,3 +3,5 @@ __pycache__
 build
 *.egg-info
 raw_output
+notebooks
+dtv_inpainting_results

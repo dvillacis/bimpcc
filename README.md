@@ -14,21 +14,14 @@ This python module requires the following modules:
 * pillow
 * scikit-image
 
+## pyOptSparse with IPOPT Installation
+We refer the user to the [OpenMDAO](https://github.com/OpenMDAO/build_pyoptsparse/) installation script for compiling and installing the required solver.
+
 ## Installation
 It is necessary to install the module using pip in developer mode. Once the repository is cloned, cd into the folder and execute
 ```bash
 $ cd bimpcc
 $ pip install -e .
-```
-
-## Docker Environment
-A docker environment is provided to run the experiments. To build the docker image, execute the following command:
-```bash
-$ docker build -t bimpcc .
-```
-To run the docker image, execute the following command:
-```bash
-$ docker run -d bimpcc tail -f /dev/null
 ```
 
 ## Run MPCC Bilevel Parameter Learning
