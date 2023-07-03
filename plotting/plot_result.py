@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
-from bimpcc.operators import DiagonalPatchOperator, DirectionalGradient_Fixed
+from bimpcc.operators import DiagonalPatchOperator, DirectionalGradient_Fixed, CircularPatchOperator
 from skimage.metrics import structural_similarity as ssim
 from skimage.metrics import peak_signal_noise_ratio as psnr
 from skimage import exposure
@@ -30,13 +30,13 @@ param = result_data.item()['param']
 
 recons = exposure.match_histograms(sol,true_img)
 
-l = int(np.sqrt(len(param)))
+l = len(param)
 m,n = true_img.shape
 Kx = DirectionalGradient_Fixed((m,n),3,-0.61,dir=0)
 Ky = DirectionalGradient_Fixed((m,n),3,-0.61,dir=1)
 u = int(np.sqrt(Kx.shape[0]))
-Q = DiagonalPatchOperator((u,u),(l,l))
-print(Q)
+
+
 
 # plot results
 if len(param) > 1:
@@ -65,9 +65,12 @@ ax[2].set_yticks([])
 ax[2].set_yticklabels([])
 ax[2].set_xlabel(f'PSNR={psnr(true_img,recons):.4f}\nSSIM={ssim(true_img,recons,data_range=true_img.max() - true_img.min()):.4f}')
 if len(param) > 1:
+    # Q = DiagonalPatchOperator((u,u),(l,l))
+    Q = CircularPatchOperator((u,u),l)
+    print(Q)
     p = Q*param
     v = int(np.sqrt(len(p)))
-    par = ax[3].imshow(p.reshape((v,v)),cmap='gray')
+    par = ax[3].imshow(p.reshape((v,v)),cmap='viridis')
     ax[3].set_title('Learned Parameter')
     ax[3].set_xticklabels([])
     ax[3].set_xticks([])

@@ -405,19 +405,60 @@ class DiagonalPatchOperator(LinearOperator):
         self.name = name
         
         self.dims = dims
-        self.shape = (np.prod(dims), np.prod(patch_size))
+        self.shape = (np.prod(dims), patch_size)
         
         super().__init__()
         
     def _matvec(self, x: np.ndarray) -> np.ndarray:
-        data = x[0]*np.ones(self.dims[0])
-        for el in x:
-            for i in range(int(np.ceil(self.dims[0]/self.patch_size[0]))):
-                # print(el,i,data)
-                data = np.vstack((data,el*np.ones(self.dims[0])))
-        n = data.shape[0]
-        diags = np.arange(-n//2,n//2)
-        # print(data,diags)
-        m = sp.spdiags(data,diags,self.dims[0],self.dims[1]).todense()
-        # print(m.shape,m)
+        num_diagonals = self.dims[0]+self.dims[1]-1
+        half = int(num_diagonals/2)
+        fitted_row = np.repeat(x,num_diagonals//len(x),axis=0)
+        fitted_row = np.append(fitted_row,np.repeat(fitted_row[-1],num_diagonals%len(x)))
+        data = np.tile(fitted_row[:num_diagonals],(np.prod(self.dims),1))
+        diags = np.arange(-half,half+1)
+        m = sp.spdiags(data.T,diags,self.dims[0],self.dims[1]).todense()
         return np.ravel(m)
+    
+class CircularPatchOperator(LinearOperator):
+    def __init__(self, dims: tuple, patch_size: int, dtype = "float64", name: str = 'Patch'):
+        self.patch_size = patch_size
+        self.dtype = dtype
+        self.name = name
+        
+        self.dims = dims
+        self.shape = (np.prod(dims), patch_size)
+        
+        super().__init__()
+        
+    def _matvec(self, x: np.ndarray) -> np.ndarray:
+        # print(f'{x=}')
+        half = int(self.dims[0]/2)
+        radii = np.linspace(0,half,self.patch_size)[1:]
+        # print(radii)
+        # Create grid of row and column indices
+        row_indices, col_indices = np.indices(self.dims) 
+        # Calculate center coordinates
+        center_row = (self.dims[0] - 1) / 2
+        center_col = (self.dims[1] - 1) / 2
+        # Initialize matrix with zeros
+        matrix = np.zeros((self.dims[0], self.dims[1]))
+
+        # Iterate over radii
+        for i,radius in enumerate(radii):
+            # Calculate distance from center for each element
+            distance = np.sqrt((row_indices - center_row)**2 + (col_indices - center_col)**2)
+            
+            # Create mask for elements within current radius
+            if i == 0:
+                mask = distance <= radius
+            else:
+                mask = np.bitwise_and(distance <= radius, distance > radii[i-1])
+
+            matrix[mask] = x[i]
+            
+        matrix[matrix==0] = x[-1]
+        
+        
+            
+        return np.ravel(matrix)
+            

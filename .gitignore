@@ -5,4 +5,7 @@ build
 raw_output
 notebooks
 dtv_inpainting_results
+mri_sampling_results
 IPOPT.out
+output_plot
+*.tar.gz

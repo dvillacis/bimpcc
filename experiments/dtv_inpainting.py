@@ -45,7 +45,7 @@ n,m = true_img.shape
 Kx = DirectionalGradient_Fixed((m,n),3,-0.61,dir=0)
 Ky = DirectionalGradient_Fixed((m,n),3,-0.61,dir=1)
 u = int(np.sqrt(Kx.shape[0]))
-Q = DiagonalPatchOperator((u,u),(args.patch_size,args.patch_size))
+Q = DiagonalPatchOperator((u,u),args.patch_size)
 
 # Define the MPCC model
 # mpcc = MPCC(true_img=true_img,noisy_img=noisy_img,Kx=Kx,Ky=Ky,R=R,alpha_size=args.patch_size,tik=0.1,tol=1000.0)
@@ -58,9 +58,11 @@ param,sol,q,r,delta,theta,extra = solve_mpcc(
     Ky=Ky,
     R=R,
     Q=Q,
-    tik=0.0,
-    alpha_size=args.patch_size**2,
-    tol_max=100.0
+    tik=0.2,
+    alpha_size=args.patch_size,
+    tol_max=1.0,
+    tol_min=0.01
+    
 )
 
 # Save results

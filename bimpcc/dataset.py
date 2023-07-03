@@ -52,6 +52,42 @@ class InpaintingDataset:
             noisy_imgs.append(dmg)
         return true_imgs[0],noisy_imgs[0],PSel
     
+class SubsamplingDataset:
+    def __init__(self, dataset_dir, scale) -> None:
+        self.dataset_dir = dataset_dir
+        self.scale = scale
+    def get_data(self,subsampling=0.9):
+        print(f'Loading data from {self.dataset_dir} using a scale of {self.scale}...')
+        if self.dataset_dir.exists() == False:
+            raise Exception('Dataset directory does not exist.')
+        
+        true_imgs_path = [p for p in self.dataset_dir.glob('true*.png')]
+        true_imgs = []
+        noisy_imgs = []
+        for image_path in true_imgs_path:
+            np.random.seed(1234)
+            pil_img = Image.open(image_path)
+            pil_img = pil_img.resize((int(pil_img.width*self.scale),int(pil_img.height*self.scale)))
+            img = np.array(pil_img.convert('L'))
+            img = img / np.amax(img)
+            image_size = img.shape
+            print(f'Image size: {image_size}')
+            
+            nxsub = int(np.round(image_size[1] * subsampling))
+            iava = np.sort(np.random.permutation(np.arange(image_size[1]))[:nxsub])
+            
+            Rop = pylops.Restriction(image_size,iava,axis=0,dtype="float64")#,dtype=np.complex128)
+            Fop = pylops.signalprocessing.FFT2D(dims=image_size)
+            # print(Rop)
+            # print(Fop)
+            Fopimg = Fop * img.ravel()
+            # print(type(Fopimg[0]))
+            # print(Rop*Fopimg)
+            dmg = Rop * Fop * img.ravel()
+            true_imgs.append(img)
+            noisy_imgs.append(dmg)
+        return true_imgs[0],noisy_imgs[0],Rop,Fop
+    
 def load_shepp_logan_phantom(scale=1.0,subsampling=0.7):
     img = np.load('datasets/sheep_logan/phantom.npy')
     img = img/img.max()

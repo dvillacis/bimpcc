@@ -66,7 +66,7 @@ class MPCC_RELAXED:
         self.optProb.addConGroup('nonlin_con_4',2*self.dim_q,lower=0,upper=0,wrt=['q','delta','theta'],jac={'q':jac_con_4_q,'delta':jac_con_4_delta,'theta':jac_con_4_theta})
         
         # Linear constraints
-        jac_u = np.real((self.R.H*self.R).tosparse()) + 0.001*eye(self.dim_u)
+        jac_u = np.real((self.R.H*self.R).tosparse()) #+ 0.001*eye(self.dim_u)
         # print(jac_u.shape)
         rhs = np.real(self.R.H * self.noisy_img.ravel())
         # print(rhs)
@@ -131,14 +131,15 @@ class MPCC_RELAXED:
         
         return gout, fail
     
-    def solve(self,print_sparsity=True):
+    def solve(self,print_sparsity=False):
         if print_sparsity: self.optProb.printSparsity()
         self.optProb.addObj('obj')
         opt = OPT('IPOPT',options={
             'print_level':5,
-            'acceptable_tol':1e-1,
-            'acceptable_iter':3,
+            'acceptable_tol':1e-2,
+            'acceptable_iter':5,
             'max_iter':self.max_iter,
+            'linear_solver':'ma86',
             # 'nlp_scaling_method':'gradient-based',
             # 'nlp_scaling_max_gradient': 1.0
         })
@@ -161,16 +162,16 @@ class MPCC_RELAXED:
         }
         return param, rec, sol.xStar['q'], sol.xStar['r'], sol.xStar['delta'], sol.xStar['theta'], extra
     
-def solve_mpcc(true_img, noisy_img, Kx, Ky, R, Q, tik=0.1, alpha_max=1.0, alpha_size=1, tol_max=1000.0, tol_min=0.1, max_iter=2000):
+def solve_mpcc(true_img, noisy_img, Kx, Ky, R, Q, tik=0.1, alpha_max=1.0, alpha_size=1, tol_max=1000.0, tol_min=0.1, max_iter=3000):
     extras = []
     print(f'********* Solve with tol={tol_max} **********')
     mpcc = MPCC_RELAXED(true_img=true_img,noisy_img=noisy_img,Kx=Kx,Ky=Ky,R=R,Q=Q,alpha_size=alpha_size,tik=tik,alpha_max=alpha_max,tol=tol_max,max_iter=max_iter)
     param,sol,q,r,delta,theta,extra = mpcc.solve()
     extras.append(extra)
     
-    step = -(tol_max-tol_min)/10
+    step = -(tol_max-tol_min)/5
     
-    for t in np.arange(tol_max-step,tol_min+step+0.001,step):
+    for t in np.arange(tol_max+step,tol_min+step,step):
         print(f'********* Solve with tol={t} **********')
         mpcc = MPCC_RELAXED(true_img=true_img,noisy_img=noisy_img,Kx=Kx,Ky=Ky,R=R,Q=Q,alpha_size=alpha_size,tik=tik,alpha_max=alpha_max,tol=t,max_iter=max_iter,init_alpha=param,init_u=sol.ravel(),init_q=q, init_r=r, init_delta=delta, init_theta=theta)
         param,sol,q,r,delta,theta,extra = mpcc.solve()
