@@ -6,6 +6,10 @@ raw_output
 notebooks
 dtv_inpainting_results
 mri_sampling_results
+tgv_denoising_results
+tv_denoising_results
 IPOPT.out
 output_plot
 *.tar.gz
+*.xmp
+*.jpeg

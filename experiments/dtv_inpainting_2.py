@@ -1,12 +1,11 @@
 import argparse
-import matplotlib.pyplot as plt
-import numpy as np
 import os
+import numpy as np
 from pathlib import Path
 from pylops import Identity, VStack
-from bimpcc.dataset import NoiseDataset as Dataset
-from bimpcc.operators import FirstDerivative, PatchOperator
-from bimpcc.tv_two_dim import solve_mpcc
+from bimpcc.dataset import InpaintingDataset as Dataset
+from bimpcc.operators import DirectionalGradient_Fixed, DiagonalPatchOperator
+from bimpcc.tv_mpcc_2 import solve_mpcc, solve_mpcc_one_shot
 
 # Parse arguments
 parser = argparse.ArgumentParser(description='Obtain optimal parameters of a TV denoising model.')
@@ -39,31 +38,34 @@ if args.patch_size < 1:
 
 # Load dataset
 dataset = Dataset(dataset_dir, args.img_scale)
-true_img,noisy_img = dataset.get_data()
+true_img,noisy_img,R = dataset.get_data()
 n,m = true_img.shape
 
 # Define the required operators
-Kx = FirstDerivative(n*m,dims=(n,m),dir=0)
-Ky = FirstDerivative(n*m,dims=(n,m),dir=1)
+Kx = DirectionalGradient_Fixed((m,n),3,-0.61,dir=0)
+Ky = DirectionalGradient_Fixed((m,n),3,-0.61,dir=1)
 K = VStack([Kx,Ky])
-R = Identity(n*m)
-Q = PatchOperator((n-1,m-1),(args.patch_size,args.patch_size))
+Q = DiagonalPatchOperator((n-1,m-1),args.patch_size)
 
 # Define the MPCC model
-sol,extra = solve_mpcc(
+π_0 = np.linalg.norm(true_img.ravel()-(R.T@noisy_img).ravel())
+print(f'π0 = {π_0}')
+param,sol,q,r,delta,theta,extra = solve_mpcc(
     true_img=true_img,
     noisy_img=noisy_img,
     K=K,
     R=R,
     Q=Q,
     α_size=args.patch_size,
-    print_level=5
+    tik=0.1,
+    π_init=π_0,
+    α_max=1.0,
 )
 
 # Save results
-results_dir = output_dir / f'tv_denoising_scale_{args.img_scale}_patch_{args.patch_size}.npy'
-stats_dir = output_dir / f'tv_denoising_scale_{args.img_scale}_patch_{args.patch_size}_stats.npy'
-data = {'param':sol.xStar['α'],'sol':sol.xStar['u'],'true_img':true_img,'noisy_img':R.T*noisy_img.ravel()}
+results_dir = output_dir / f'dtv_denoising_scale_{args.img_scale}_patch_{args.patch_size}.npy'
+stats_dir = output_dir / f'dtv_denoising_scale_{args.img_scale}_patch_{args.patch_size}_stats.npy'
+data = {'param':param,'sol':sol,'true_img':true_img,'noisy_img':R.T*noisy_img.ravel()}
 with open(results_dir,'wb') as f:
     np.save(f,data)
     print(f'Saved results to {results_dir}.')

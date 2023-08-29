@@ -1,11 +1,14 @@
 import argparse
-import os
+import matplotlib.pyplot as plt
 import numpy as np
+import os
 from pathlib import Path
-from pylops import Identity
+from pylops import Identity, VStack
 from bimpcc.dataset import InpaintingDataset as Dataset
 from bimpcc.operators import DirectionalGradient_Fixed, DiagonalPatchOperator
-from bimpcc.mpcc import solve_mpcc
+from bimpcc.tv_two_dim import solve_mpcc
+from pyproximal import L1,L2,L21
+from pyproximal.optimization.primaldual import PrimalDual
 
 # Parse arguments
 parser = argparse.ArgumentParser(description='Obtain optimal parameters of a TV denoising model.')
@@ -44,31 +47,24 @@ n,m = true_img.shape
 # Define the required operators
 Kx = DirectionalGradient_Fixed((m,n),3,-0.61,dir=0)
 Ky = DirectionalGradient_Fixed((m,n),3,-0.61,dir=1)
-u = int(np.sqrt(Kx.shape[0]))
-Q = DiagonalPatchOperator((u,u),args.patch_size)
+K = VStack([Kx,Ky])
+Q = DiagonalPatchOperator((n-1,m-1),args.patch_size)
 
 # Define the MPCC model
-# mpcc = MPCC(true_img=true_img,noisy_img=noisy_img,Kx=Kx,Ky=Ky,R=R,alpha_size=args.patch_size,tik=0.1,tol=1000.0)
-# param,sol = mpcc.solve()
-
-param,sol,q,r,delta,theta,extra = solve_mpcc(
+sol,extra = solve_mpcc(
     true_img=true_img,
     noisy_img=noisy_img,
-    Kx=Kx,
-    Ky=Ky,
+    K=K,
     R=R,
     Q=Q,
-    tik=0.2,
-    alpha_size=args.patch_size,
-    tol_max=1.0,
-    tol_min=0.01
-    
+    α_size=args.patch_size,
+    print_level=5
 )
 
 # Save results
 results_dir = output_dir / f'dtv_denoising_scale_{args.img_scale}_patch_{args.patch_size}.npy'
 stats_dir = output_dir / f'dtv_denoising_scale_{args.img_scale}_patch_{args.patch_size}_stats.npy'
-data = {'param':param,'sol':sol,'true_img':true_img,'noisy_img':R.T*noisy_img.ravel()}
+data = {'param':sol.xStar['α'],'sol':sol.xStar['u'],'true_img':true_img,'noisy_img':R.T*noisy_img.ravel()}
 with open(results_dir,'wb') as f:
     np.save(f,data)
     print(f'Saved results to {results_dir}.')

@@ -69,22 +69,23 @@ for i,result_dir in enumerate(args.results_dirs):
     # Load results
     result_data = np.load(result_dir,allow_pickle=True)
     sol = result_data.item()['sol'].reshape(true_img.shape)
-    param = result_data.item()['param']
+    param1 = result_data.item()['param1']
+    param2 = result_data.item()['param2']
     recons = exposure.match_histograms(sol,true_img)
     
-    patch_size = len(param)
+    patch_size = len(param1)
     
     ax[0,i+2].imshow(recons,cmap='gray')
-    ax[0,i+2].set_title(f'{patch_size}')
+    ax[0,i+2].set_title(f'{patch_size},α={param1[0]:.4f},β={param2[0]:.4f}')
     ax[0,i+2].set_xticklabels([])
     ax[0,i+2].set_xticks([])
     ax[0,i+2].set_yticks([])
     ax[0,i+2].set_yticklabels([])
     ax[0,i+2].set_xlabel(f'PSNR={psnr(true_img,recons):.4f}\nSSIM={ssim(true_img,recons,data_range=true_img.max() - true_img.min()):.4f}')
     
-    if len(param) > 1:
+    if len(param1) > 1:
         Q = DiagonalPatchOperator((u,u),patch_size)
-        p = Q*param
+        p = Q*param1
         v = int(np.sqrt(len(p)))
         par = ax[1,i+2].imshow(p.reshape((v,v)),cmap='viridis')
         ax[1,i+2].set_xticklabels([])

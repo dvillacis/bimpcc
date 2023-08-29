@@ -5,7 +5,7 @@ from pathlib import Path
 # from bimpcc.dataset import 
 from bimpcc.dataset import SubsamplingDataset as Dataset
 from bimpcc.operators import FirstDerivative, CircularPatchOperator
-from bimpcc.mpcc import solve_mpcc
+from bimpcc.tv_mpcc import solve_mpcc
 
 # Parse arguments
 parser = argparse.ArgumentParser(description='MRI sampling.')
@@ -42,9 +42,9 @@ param,sol,q,r,delta,theta,extra = solve_mpcc(
     Ky=Ky,
     R=R,
     Q=Q,
-    tik=0.2,
+    tik=0.3,
     alpha_size=args.patch_size,
-    tol_max=1.0,
+    tol_max=100.0,
     tol_min=0.1
 )
 

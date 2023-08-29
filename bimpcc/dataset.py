@@ -30,7 +30,7 @@ class InpaintingDataset:
     def __init__(self, dataset_dir, scale) -> None:
         self.dataset_dir = dataset_dir
         self.scale = scale
-    def get_data(self,var=0.04,lost_percentage=0.3):
+    def get_data(self,var=0.05,lost_percentage=0.2):
         print(f'Loading data from {self.dataset_dir} using a scale of {self.scale}...')
         if self.dataset_dir.exists() == False:
             raise Exception('Dataset directory does not exist.')
@@ -56,7 +56,7 @@ class SubsamplingDataset:
     def __init__(self, dataset_dir, scale) -> None:
         self.dataset_dir = dataset_dir
         self.scale = scale
-    def get_data(self,subsampling=0.9):
+    def get_data(self,subsampling=0.9, var=0.05):
         print(f'Loading data from {self.dataset_dir} using a scale of {self.scale}...')
         if self.dataset_dir.exists() == False:
             raise Exception('Dataset directory does not exist.')
@@ -72,18 +72,15 @@ class SubsamplingDataset:
             img = img / np.amax(img)
             image_size = img.shape
             print(f'Image size: {image_size}')
+            noise = np.random.normal(loc=0,scale=var,size=img.shape)
+            noisy = img + noise
             
             nxsub = int(np.round(image_size[1] * subsampling))
             iava = np.sort(np.random.permutation(np.arange(image_size[1]))[:nxsub])
             
-            Rop = pylops.Restriction(image_size,iava,axis=0,dtype="float64")#,dtype=np.complex128)
+            Rop = pylops.Restriction(image_size,iava,axis=0,dtype=np.complex128)
             Fop = pylops.signalprocessing.FFT2D(dims=image_size)
-            # print(Rop)
-            # print(Fop)
-            Fopimg = Fop * img.ravel()
-            # print(type(Fopimg[0]))
-            # print(Rop*Fopimg)
-            dmg = Rop * Fop * img.ravel()
+            dmg = Rop * Fop * noisy.ravel()
             true_imgs.append(img)
             noisy_imgs.append(dmg)
         return true_imgs[0],noisy_imgs[0],Rop,Fop
